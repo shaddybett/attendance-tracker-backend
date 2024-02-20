@@ -33,7 +33,7 @@ class Login(Resource):
         else:
             return make_response(jsonify({'error': 'Invalid email or password'}), 401)
 
-            # return jsonify({'message': 'Isuccess'})
+  
 
 
 class AddTeacher(Resource):
