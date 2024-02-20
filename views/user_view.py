@@ -58,7 +58,7 @@ class AddTeacher(Resource):
             db.session.add(new_teacher)
             db.session.commit()
             print(new_teacher.role_id)
-            return jsonify({'message': f'{data['first_name']} added successfully'})
+            return jsonify({'message': f'{data["first_name"]} added successfully'})
 
 class AddStudent(Resource):
     def post(self):
