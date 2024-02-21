@@ -1,26 +1,29 @@
 from flask import Flask, request, jsonify,Blueprint,make_response
 from flask_restful import Api,Resource
 from flask_bcrypt import Bcrypt
-from dotenv import load_dotenv
-from flask_cors import CORS
-from models import db, User, Role, ClassStudent, Class, Attendance
-from flask_migrate import Migrate
+from models import db, User, Role, ClassStudent, Class as ClassModel, Attendance
 from datetime import datetime
 
 class_bp = Blueprint('class_bp', __name__)
 
 
-class Class(Resource):
+class ClassView(Resource):
     def post(self):
         data = request.get_json()
-        class_name = data.get('class_name')
-        teacher_id = data.get('teacher_id')
 
-        new_class = Class(class_name=class_name, teacher_id=teacher_id)
+        new_class = ClassModel(
+            class_name=data.get('class_name'), 
+            user_id=data.get('user_id'),
+            start_time = data.get('start_time'),
+            end_time = data.get('end_time'),
+            start_date = data.get('start_date'),
+            end_date = data.get('end_date')
+            )
+        
         db.session.add(new_class)
         db.session.commit()
         
-        return jsonify({'message': f'Class {class_name} created successfully'})
+        return jsonify({'message': f'Class {data.get("class_name")} created successfully'})
 
     def get(self):
         classes = Class.query.all()
