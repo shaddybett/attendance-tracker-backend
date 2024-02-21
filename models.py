@@ -27,3 +27,24 @@ class TokenBlocklist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     jti = db.Column(db.String(36), nullable=False, index=True)
     created_at = db.Column(db.DateTime, nullable=False)
+
+class Class(db.Model, SerializerMixin):
+    __tablename__ = 'classes'
+    id = db.Column(db.Integer, primary_key=True)
+    class_name = db.Column(db.String, nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    students = db.relationship('User', secondary='class_students', backref=db.backref('classes'))
+
+class ClassStudent(db.Model):
+    __tablename__ = 'class_students'
+    id = db.Column(db.Integer, primary_key=True)
+    class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+class Attendance(db.Model):
+    __tablename__ = 'attendances'
+    id = db.Column(db.Integer, primary_key=True)
+    class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    status = db.Column(db.String, nullable=False)  # 'Present' or 'Absent'
+    date = db.Column(db.Date, nullable=False)
