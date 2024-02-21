@@ -12,6 +12,7 @@ class User(db.Model,SerializerMixin):
     email = db.Column(db.String,nullable=False)
     department = db.Column(db.String,nullable=True)
     course = db.Column(db.String,nullable=True)
+    avatar_url = db.Column(db.String,nullable=True)
     password = db.Column(db.String,nullable=False)
     phone_number = db.Column(db.Integer,nullable=False)
     role_id = db.Column(db.Integer,db.ForeignKey('roles.id'),nullable=False)
@@ -33,6 +34,10 @@ class Class(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     class_name = db.Column(db.String, nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    start_time = db.Column(db.Time, nullable=False)
+    end_time = db.Column(db.Time, nullable=False)
+    start_date = db.Column(db.DateTime, nullable=False)
+    end_date = db.Column(db.DateTime, nullable=False)
     students = db.relationship('User', secondary='class_students', backref=db.backref('classes'))
 
 class ClassStudent(db.Model):
@@ -47,4 +52,4 @@ class Attendance(db.Model):
     class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=False)
     student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     status = db.Column(db.String, nullable=False)  # 'Present' or 'Absent'
-    date = db.Column(db.Date, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
