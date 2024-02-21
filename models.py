@@ -33,7 +33,7 @@ class Class(db.Model, SerializerMixin):
     __tablename__ = 'classes'
     id = db.Column(db.Integer, primary_key=True)
     class_name = db.Column(db.String, nullable=False)
-    teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
     start_date = db.Column(db.DateTime, nullable=False)
@@ -44,7 +44,7 @@ class ClassStudent(db.Model):
     __tablename__ = 'class_students'
     id = db.Column(db.Integer, primary_key=True)
     class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=False)
-    student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 class Attendance(db.Model):
     __tablename__ = 'attendances'
