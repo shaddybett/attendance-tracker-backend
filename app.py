@@ -44,5 +44,11 @@ api.add_resource(Logout, '/logout')
 api.add_resource(AddTeacher,'/addteacher')
 api.add_resource(AddStudent,'/addstudent')
 
+api.add_resource(Class, '/class')
+api.add_resource(ClassStudent, '/class/<int:class_id>/student')
+api.add_resource(Attendance, '/class/<int:class_id>/attendance')
+api.add_resource(ClassDetails, '/class/<int:class_id>/details')
+
+
 if __name__=='__main__':
     app.run(debug=True,port=5000)
