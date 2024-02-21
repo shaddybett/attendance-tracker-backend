@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from datetime import timezone
-from flask import jsonify, request, Blueprint, Response
+from flask import jsonify, request, Blueprint, Response,make_response
 from flask_restful import Resource
 from flask_bcrypt import Bcrypt
 from models import User, Role, TokenBlocklist, db
@@ -19,10 +19,16 @@ class Login(Resource):
         email = data.get('email')
         password = data.get('password')
         
-        if not email or not password:
-            response_data = {'error': 'Email and password are required'}
+        if email is None or password is None:
+            if email is None:
+                return make_response(jsonify({'error': 'Email is required'}), 400)
+            elif password is None:
+                return make_response(jsonify({'error': 'Password is required'}), 400)
             return Response(json.dumps(response_data), status=400, mimetype='application/json')
-        
+        if password == '':
+            return make_response(jsonify({'error': 'Enter Your Password'}),400)
+        if email == '':
+            return make_response(jsonify({'error': 'Enter Your Email'}),400)
         user = User.query.filter_by(email=email).first()
         
         if user and bcrypt.check_password_hash(user.password, password):
