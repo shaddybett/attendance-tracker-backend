@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify,Blueprint,make_response
-from flask_restful import Api,Resource
+from flask_restful import Api,Resource,reqparse
 from flask_bcrypt import Bcrypt
 from models import db, User, Role, ClassStudent, Class as ClassModel, Attendance
 from datetime import datetime
@@ -9,7 +9,20 @@ class_bp = Blueprint('class_bp', __name__)
 
 class ClassView(Resource):
     def post(self):
-        data = request.get_json()
+        parser = reqparse.RequestParser()
+        parser.add_argument('class_name',type=str,required = True)
+        parser.add_argument('user_id',type=int,required=True)
+        parser.add_argument('start_time',type=str,required=True)
+        parser.add_argument('end_time',type=str,required=True)
+        parser.add_argument('start_date',type=str,required=True)
+        parser.add_argument('end_date',type=str,required=True)
+        data = parser.parse_args(strict=True)
+
+        exists = ClassModel.query.filter_by(user_id=data.user_id).first()
+        if exists:
+            return make_response(jsonify({'error':'Class already exists'}),403)
+        if any(value == '' or value is None for value in data.values()):
+            return make_response(jsonify({'error': 'Fill in all forms'}),400)
 
         new_class = ClassModel(
             class_name=data.get('class_name'), 
@@ -26,7 +39,7 @@ class ClassView(Resource):
         return jsonify({'message': f'Class {data.get("class_name")} created successfully'})
 
     def get(self):
-        classes = Class.query.all()
+        classes = ClassModel.query.all()
         classes_data = [class_.to_dict() for class_ in classes]
         return jsonify(classes_data)
 
@@ -34,7 +47,7 @@ class ClassView(Resource):
         data = request.get_json()
         new_class_name = data.get('new_class_name')
 
-        class_ = Class.query.get(class_id)
+        class_ = ClassModel.query.get(class_id)
         if class_:
             class_.class_name = new_class_name
             db.session.commit()
@@ -43,7 +56,7 @@ class ClassView(Resource):
             return jsonify({'error': 'Class not found'})
 
     def delete(self, class_id):
-        class_ = Class.query.get(class_id)
+        class_ = ClassModel.query.get(class_id)
         if class_:
             db.session.delete(class_)
             db.session.commit()
@@ -86,7 +99,7 @@ class Attendance(Resource):
 
 class ClassDetails(Resource):
     def get(self, class_id):
-        class_ = Class.query.get(class_id)
+        class_ = ClassModel.query.get(class_id)
         if not class_:
             return jsonify({'error': 'Class not found'})
 
