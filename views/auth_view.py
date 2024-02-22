@@ -76,4 +76,4 @@ class Logout(Resource):
         now = datetime.now(timezone.utc)
         db.session.add(TokenBlocklist(jti=jti, created_at=now))
         db.session.commit()
-        return jsonify(msg="JWT revoked")
+        return jsonify(msg="Logged out successfully")
