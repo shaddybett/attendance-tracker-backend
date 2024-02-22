@@ -45,7 +45,7 @@ api.add_resource(AddTeacher,'/addteacher')
 api.add_resource(AddStudent,'/addstudent')
 
 api.add_resource(ClassView, '/class', '/class/<int:class_id>')
-api.add_resource(ClassStudentResource, '/class/<int:class_id>/student', '/class/<int:class_id>/student/<int:user_id>')
+api.add_resource(ClassStudentResource, '/class/<int:class_id>/student')
 api.add_resource(Attendance, '/class/<int:class_id>/attendance')
 api.add_resource(ClassDetails, '/class/<int:class_id>/details')
 

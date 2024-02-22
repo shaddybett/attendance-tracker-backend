@@ -20,7 +20,7 @@ class ClassView(Resource):
         parser.add_argument('end_date',type=str,required=True)
         data = parser.parse_args(strict=True)
 
-        exists = ClassModel.query.filter_by(user_id=data.user_id).first()
+        exists = ClassModel.query.filter_by(class_name=data.class_name).first()
         if exists:
             return make_response(jsonify({'error':'Class already exists'}),403)
         if any(value == '' or value is None for value in data.values()):
@@ -38,7 +38,7 @@ class ClassView(Resource):
         db.session.add(new_class)
         db.session.commit()
         
-        return jsonify({'message': f'Class {data.get("class_name")} created successfully'})
+        return jsonify(new_class.to_dict())
 
     @jwt_required()
     def get(self):
@@ -50,7 +50,7 @@ class ClassView(Resource):
     def patch(self, class_id):
         data = request.get_json()
 
-        class_ = ClassModelModel.query.get(int(class_id))
+        class_ = ClassModel.query.get(int(class_id))
         if class_:
             for attr in data:
                 setattr(class_, attr, data[attr])
@@ -80,7 +80,7 @@ class ClassStudentResource(Resource):
     # @jwt_required()
     def post(self, class_id):
         data = request.get_json()
-        student_id = data.get('user_id')
+        student_id = data.get('student_id')
 
         exists = ClassStudent.query.filter_by(user_id=student_id).first()
         if exists:
@@ -94,8 +94,10 @@ class ClassStudentResource(Resource):
         else:
             return jsonify({'error': 'Failed to add student to class'})
 
-    def delete(self, class_id, user_id):
-        class_student = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
+    def delete(self, class_id):
+        data = request.get_json()
+        
+        class_student = ClassStudent.query.filter_by(class_id=class_id, user_id=data['student_id']).first()
         if class_student:
             db.session.delete(class_student)
             db.session.commit()

@@ -15,8 +15,8 @@ class AddTeacher(Resource):
         parser.add_argument('department', type=str, required=True)
         parser.add_argument('course', type=str, required=True)
         parser.add_argument('phone_number', type=str, required=True)
-        parser.add_argument('password', type=str, required=True)
         parser.add_argument('role_id', type=int, required=True)
+        # parser.add_argument('avatar_url',type=str,required=False)
         data = parser.parse_args(strict=True)  # strict=True will raise an error if a required field is missing
 
         exists = User.query.filter_by(email=data.email).first()
@@ -32,7 +32,8 @@ class AddTeacher(Resource):
             course=data.course,
             password=bcrypt.generate_password_hash(data['email']).decode('utf-8'),
             phone_number=data.phone_number,
-            role_id=data.role_id
+            role_id=data.role_id,
+            # avatar_url=data.avatar_url
         )
         db.session.add(new_teacher)
         db.session.commit()
@@ -47,8 +48,8 @@ class AddStudent(Resource):
         parser.add_argument('email', type=str, required=True)
         parser.add_argument('course', type=str, required=True)
         parser.add_argument('phone_number', type=str, required=True)
-        parser.add_argument('password', type=str, required=True)
         parser.add_argument('role_id', type=int, required=True)
+        # parser.add_argument('avatar_url',type=str,required=False)
         data = parser.parse_args(strict=True)
 
         exists = User.query.filter_by(email=data.email).first()
@@ -62,8 +63,18 @@ class AddStudent(Resource):
             course=data.course,
             password=bcrypt.generate_password_hash(data.email).decode('utf-8'),
             phone_number=data.phone_number,
-            role_id=data.role_id
+            role_id=data.role_id,
+            # avatar_url=data.avatar_url
         )
+
         db.session.add(new_student)
         db.session.commit()
-        return make_response(jsonify({'message': f'{data.first_name} added successfully  "course":{data.course} '}), 200)
+        response = {
+            "student_id":new_student.id, 
+            "first_name":data.first_name,
+            "last_name":data.last_name,
+            "email":data.email,
+            "course":data.course,
+
+        }
+        return make_response(jsonify(response), 201)
