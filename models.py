@@ -31,6 +31,7 @@ class TokenBlocklist(db.Model):
 
 class Class(db.Model, SerializerMixin):
     __tablename__ = 'classes'
+    serialize_rules = ('-students',)
     id = db.Column(db.Integer, primary_key=True)
     class_name = db.Column(db.String, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
