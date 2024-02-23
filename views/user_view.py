@@ -50,7 +50,12 @@ class AddTeacher(Resource):
 
 
 class AddStudent(Resource):
+    @jwt_required()
     def post(self):
+        user_id = get_jwt_identity()
+        user = User.query.filter_by(id=user_id).first()
+        if user.role_id !=1 and user.role_id !=2:
+            return make_response(jsonify({'error': 'Permission denied'}), 403)
         parser = reqparse.RequestParser()
         parser.add_argument('first_name', type=str, required=True)
         parser.add_argument('last_name', type=str, required=True)
