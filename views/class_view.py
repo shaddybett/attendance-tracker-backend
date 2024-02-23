@@ -51,8 +51,12 @@ class ClassView(Resource):
         classes = ClassModel.query.filter_by(user_id=user_id).all()
         classes_data = [class_.to_dict() for class_ in classes]
         return jsonify(classes_data)
-
+    @jwt_required()
     def patch(self, class_id):
+        user_id = get_jwt_identity()
+        user = User.query.filter_by(id=user_id).first()
+        if user.role_id !=2 and user.role_id !=1:   
+            return make_response(jsonify({'error': 'Permission denied'}), 403)
         data = request.get_json()
 
         class_ = ClassModel.query.get(int(class_id))
