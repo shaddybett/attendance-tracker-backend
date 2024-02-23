@@ -78,15 +78,15 @@ class ClassView(Resource):
 
 class ClassStudentResource(Resource):
     # @jwt_required()
-    def post(self, class_id):
-        data = request.get_json()
-        student_id = data.get('student_id')
+    def post(self, class_id,user_id):
+        
+       
 
-        exists = ClassStudent.query.filter_by(user_id=student_id).first()
+        exists = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
         if exists:
             return jsonify({'error': 'Student already exists in class'})
 
-        class_student = ClassStudent(class_id=class_id, user_id=student_id)
+        class_student = ClassStudent(class_id=class_id, user_id=user_id)
         if class_student:
             db.session.add(class_student)
             db.session.commit()
@@ -94,10 +94,10 @@ class ClassStudentResource(Resource):
         else:
             return jsonify({'error': 'Failed to add student to class'})
 
-    def delete(self, class_id):
-        data = request.get_json()
+    def delete(self, class_id,user_id):
         
-        class_student = ClassStudent.query.filter_by(class_id=class_id, user_id=data['student_id']).first()
+        
+        class_student = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
         if class_student:
             db.session.delete(class_student)
             db.session.commit()
