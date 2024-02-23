@@ -90,24 +90,34 @@ class ClassView(Resource):
             return jsonify({'error': 'Class not found'})
 
 class ClassStudentResource(Resource):
-    # @jwt_required()
+    @jwt_required()
     def post(self, class_id,user_id):
-        
-       
+            user_id = get_jwt_identity()
+            user = User.query.filter_by(id=user_id).first()
+            if user.role_id !=2 and user.role_id !=1:   
+                return make_response(jsonify({'error': 'Permission denied'}), 403)
+            
 
-        exists = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
-        if exists:
-            return jsonify({'error': 'Student already exists in class'})
+            def delete(self, class_id):
 
-        class_student = ClassStudent(class_id=class_id, user_id=user_id)
-        if class_student:
-            db.session.add(class_student)
-            db.session.commit()
-            return jsonify({'message': 'Student added to class successfully'})
-        else:
-            return jsonify({'error': 'Failed to add student to class'})
+                exists = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
+                if exists:
+                    return jsonify({'error': 'Student already exists in class'})
 
+            class_student = ClassStudent(class_id=class_id, user_id=user_id)
+            if class_student:
+                db.session.add(class_student)
+                db.session.commit()
+                return jsonify({'message': 'Student added to class successfully'})
+            else:
+                return jsonify({'error': 'Failed to add student to class'})
+    @jwt_required()
     def delete(self, class_id,user_id):
+            
+        user_id = get_jwt_identity()
+        user = User.query.filter_by(id=user_id).first()
+        if user.role_id !=2 and user.role_id !=1:   
+            return make_response(jsonify({'error': 'Permission denied'}), 403)
         
         
         class_student = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
