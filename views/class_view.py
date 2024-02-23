@@ -98,11 +98,11 @@ class ClassStudentResource(Resource):
                 return make_response(jsonify({'error': 'Permission denied'}), 403)
             
 
-            def delete(self, class_id):
+            # def delete(self, class_id):
 
-                exists = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
-                if exists:
-                    return jsonify({'error': 'Student already exists in class'})
+            exists = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
+            if exists:
+                return jsonify({'error': 'Student already exists in class'})
 
             class_student = ClassStudent(class_id=class_id, user_id=user_id)
             if class_student:

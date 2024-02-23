@@ -92,3 +92,41 @@ class AddStudent(Resource):
 
         }
         return make_response(jsonify(response), 201)
+
+class AllStudents(Resource):
+    @jwt_required()
+    def get(self):
+        students = User.query.filter_by(role_id=3).all()
+        
+        response = []
+        for student in students:
+                student_data = {
+                    "student_id": student.id, 
+                    "first_name": student.first_name,
+                    "last_name": student.last_name,
+                    "email": student.email,
+                    "course": student.course
+                }
+                response.append(student_data)
+
+        return make_response(jsonify(response), 200)
+
+
+class AllTeachers(Resource):
+    @jwt_required()
+    def get(self):
+        teachers = User.query.filter_by(role_id = 2).all()
+        response = []
+        for teacher in teachers:
+            teacher_data = {
+                "teacher_id":teacher.id,
+                "first_name": teacher.first_name,
+                "last_name":teacher.last_name,
+                "email":teacher.email,
+                "department":teacher.department,
+                "course":teacher.course,
+                "phone_number":teacher.phone_number,
+                "role_id":teacher.role_id
+            }
+            response.append(teacher_data)
+        return make_response(jsonify(response),200)
