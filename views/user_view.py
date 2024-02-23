@@ -9,6 +9,7 @@ bcrypt = Bcrypt()
 
 class AddTeacher(Resource):
     @jwt_required()
+    
 
     def post(self):
         user_id = get_jwt_identity()

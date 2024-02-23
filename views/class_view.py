@@ -10,7 +10,12 @@ class_bp = Blueprint('class_bp', __name__)
 
 
 class ClassView(Resource):
+    @jwt_required()
     def post(self):
+        user_id = get_jwt_identity()
+        user = User.query.filter_by(id=user_id).first()
+        if user.role_id !=2:
+            return make_response(jsonify({'error': 'Permission denied'}), 403)
         parser = reqparse.RequestParser()
         parser.add_argument('class_name',type=str,required = True)
         parser.add_argument('user_id',type=int,required=True)
