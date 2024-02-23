@@ -139,3 +139,33 @@ class AllTeachers(Resource):
             }
             response.append(teacher_data)
         return make_response(jsonify(response),200)
+
+
+class DeleteUsers(Resource):
+    @jwt_required()
+    def delete(self, teacher_id=None, student_id=None):
+        user_id = get_jwt_identity()
+        user = User.query.filter_by(id=user_id).first()
+        if user.role_id != 1:
+            return make_response(jsonify({'error': 'Permission denied'}), 403)
+        
+        if teacher_id:
+            teacher = User.query.filter_by(id=teacher_id, role_id=2).first()
+            if teacher:
+                db.session.delete(teacher)
+                db.session.commit()
+                return make_response(jsonify({'message': f'Teacher {teacher.first_name} successfully deleted'}), 200)
+            else:
+                return make_response(jsonify({'error': 'Teacher not found'}), 404)
+
+        if student_id:
+            student = User.query.filter_by(id=student_id, role_id=3).first()
+            if student:
+                db.session.delete(student)
+                db.session.commit()
+                return make_response(jsonify({'message': f'Student {student.first_name} successfully deleted'}), 200)
+            else:
+                return make_response(jsonify({'error': 'Student not found'}), 404)
+
+        return make_response(jsonify({'error': 'No user ID provided'}), 400)
+

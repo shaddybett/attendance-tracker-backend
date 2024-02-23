@@ -54,6 +54,8 @@ api.add_resource(Attendance, '/class/<int:class_id>/attendance')
 api.add_resource(ClassDetails, '/class/<int:class_id>/details')
 api.add_resource(AllStudents, '/allstudents')
 api.add_resource(AllTeachers,'/allteachers')
+api.add_resource(DeleteUsers, '/deleteuser/teacher/<int:teacher_id>', '/deleteuser/student/<int:student_id>')
+
 
 if __name__=='__main__':
     app.run(debug=True,port=5000)
