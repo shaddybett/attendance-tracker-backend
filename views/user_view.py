@@ -96,6 +96,10 @@ class AddStudent(Resource):
 class AllStudents(Resource):
     @jwt_required()
     def get(self):
+        user_id = get_jwt_identity()
+        user = User.query.filter_by(id=user_id).first()
+        if user.role_id !=1 and user.role_id !=2:
+            return make_response(jsonify({'error': 'Permission denied'}), 403)
         students = User.query.filter_by(role_id=3).all()
         
         response = []
@@ -115,6 +119,11 @@ class AllStudents(Resource):
 class AllTeachers(Resource):
     @jwt_required()
     def get(self):
+        # user_id = get_jwt_identity()
+        # user = User.query.filter_by(id=user_id).first()
+        # if user.role_id !=1 and user.role_id !=2:
+        #     return make_response(jsonify({'error': 'Permission denied'}), 403)
+
         teachers = User.query.filter_by(role_id = 2).all()
         response = []
         for teacher in teachers:
