@@ -3,6 +3,8 @@ from flask_restful import Api,Resource,reqparse
 from flask_bcrypt import Bcrypt
 from models import db, User, Role, ClassStudent, Class as ClassModel, Attendance
 from datetime import datetime
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
 
 class_bp = Blueprint('class_bp', __name__)
 
@@ -18,7 +20,7 @@ class ClassView(Resource):
         parser.add_argument('end_date',type=str,required=True)
         data = parser.parse_args(strict=True)
 
-        exists = ClassModel.query.filter_by(user_id=data.user_id).first()
+        exists = ClassModel.query.filter_by(class_name=data.class_name).first()
         if exists:
             return make_response(jsonify({'error':'Class already exists'}),403)
         if any(value == '' or value is None for value in data.values()):
@@ -36,47 +38,66 @@ class ClassView(Resource):
         db.session.add(new_class)
         db.session.commit()
         
-        return jsonify({'message': f'Class {data.get("class_name")} created successfully'})
+        return jsonify(new_class.to_dict())
 
+    @jwt_required()
     def get(self):
-        classes = ClassModel.query.all()
+        user_id = get_jwt_identity()
+        classes = ClassModel.query.filter_by(user_id=user_id).all()
         classes_data = [class_.to_dict() for class_ in classes]
         return jsonify(classes_data)
 
-    def put(self, class_id):
+    def patch(self, class_id):
         data = request.get_json()
-        new_class_name = data.get('new_class_name')
 
-        class_ = ClassModel.query.get(class_id)
+        class_ = ClassModel.query.get(int(class_id))
         if class_:
-            class_.class_name = new_class_name
-            db.session.commit()
-            return jsonify({'message': f'Class name updated successfully'})
+            for attr in data:
+                setattr(class_, attr, data[attr])
+                
+                db.session.add(class_)
+                db.session.commit()
+                
+            return make_response(class_.to_dict(), 200)
         else:
             return jsonify({'error': 'Class not found'})
-
+    
+    
+    @jwt_required()
     def delete(self, class_id):
+        user_id = get_jwt_identity()
+        class_id = int(class_id)  # Convert class_id to integer
+
         class_ = ClassModel.query.get(class_id)
-        if class_:
+        if class_ and class_.user_id==user_id:
             db.session.delete(class_)
             db.session.commit()
             return jsonify({'message': f'Class deleted successfully'})
         else:
             return jsonify({'error': 'Class not found'})
 
-class ClassStudent(Resource):
-    def post(self, class_id):
-        data = request.get_json()
-        student_id = data.get('student_id')
-
-        class_student = ClassStudent(class_id=class_id, student_id=student_id)
-        db.session.add(class_student)
-        db.session.commit()
+class ClassStudentResource(Resource):
+    # @jwt_required()
+    def post(self, class_id,user_id):
         
-        return jsonify({'message': 'Student added to class successfully'})
+       
 
-    def delete(self, class_id, student_id):
-        class_student = ClassStudent.query.filter_by(class_id=class_id, student_id=student_id).first()
+        exists = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
+        if exists:
+            return jsonify({'error': 'Student already exists in class'})
+
+        class_student = ClassStudent(class_id=class_id, user_id=user_id)
+        if class_student:
+            db.session.add(class_student)
+            db.session.commit()
+            return jsonify({'message': 'Student added to class successfully'})
+        else:
+            return jsonify({'error': 'Failed to add student to class'})
+
+    def delete(self, class_id,user_id):
+        
+        
+        class_student = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
         if class_student:
             db.session.delete(class_student)
             db.session.commit()
