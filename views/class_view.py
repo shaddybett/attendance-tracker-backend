@@ -75,6 +75,10 @@ class ClassView(Resource):
     @jwt_required()
     def delete(self, class_id):
         user_id = get_jwt_identity()
+        user = User.query.filter_by(id=user_id).first()
+        if user.role_id !=2 and user.role_id !=1:   
+            return make_response(jsonify({'error': 'Permission denied'}), 403)
+        user_id = get_jwt_identity()
         class_id = int(class_id)  # Convert class_id to integer
 
         class_ = ClassModel.query.get(class_id)
