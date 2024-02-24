@@ -169,3 +169,41 @@ class DeleteUsers(Resource):
 
         return make_response(jsonify({'error': 'No user ID provided'}), 400)
 
+
+
+
+class UpdateProfile(Resource):
+    # @jwt_required()
+    def patch(self, user_id):
+        user = User.query.filter_by(id=user_id).first()
+        if user is None:
+            return make_response(jsonify({'error': 'User not found'}), 404)
+        
+        # if user.role_id != 1:
+        #     return make_response(jsonify({'error': 'Permission denied'}), 403)
+        
+        data = request.get_json()
+        
+        if user.role_id == 2:  # If the user is a teacher
+            for attr in data:
+                if attr != 'password':
+                    setattr(user, attr, data[attr])
+
+            db.session.commit()
+            response_data = {
+                key: value for key, value in user.to_dict().items() if key != 'password'
+            }
+            return make_response(jsonify(response_data), 200)
+
+        elif user.role_id == 3:  # If the user is a student
+            for attr in data:
+                if attr != 'password':
+                    setattr(user, attr, data[attr])
+
+            db.session.commit()
+            response_data = {
+                key: value for key, value in user.to_dict().items() if key != 'password'
+            }
+            return make_response(jsonify(response_data), 200)
+
+        return make_response(jsonify({'error': 'Invalid role'}), 400)
