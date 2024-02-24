@@ -65,7 +65,7 @@ class AddStudentsFromFile(Resource):
             first_name = row['first_name']
             last_name = row['last_name']
             email = row['email']
-            phone_number = int(row['phone_number'])
+            phone_number = row['phone_number']
             course = row['course']
             
             user = User.query.filter_by(email=email).first()
@@ -99,7 +99,7 @@ class AddStudentsFromFile(Resource):
             first_name = row['first_name']
             last_name = row['last_name']
             email = row['email']
-            phone_number = int(row['phone_number'])
+            phone_number = row['phone_number']
             course = row['course']
             
             user = User.query.filter_by(email=email).first()
