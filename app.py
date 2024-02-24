@@ -8,9 +8,11 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
 from views import *
+import os
 
 load_dotenv()
-import os
+
+# UPLOAD_FOLDER  = os.path.join(os.getcwd(), 'files') 
 
 app = Flask(__name__)
 api = Api(app)
@@ -21,6 +23,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 jwt = JWTManager()
 jwt.init_app(app)
 db.init_app(app)
@@ -43,6 +46,7 @@ api.add_resource(AuthenticatedUser, '/authenticated_user')
 api.add_resource(Logout, '/logout')
 api.add_resource(AddTeacher,'/addteacher')
 api.add_resource(AddStudent,'/addstudent')
+api.add_resource(AddStudentsFromFile,'/upload_students')
 
 api.add_resource(ClassView, '/class', '/class/<int:class_id>')
 api.add_resource(ClassStudentResource, '/class/<int:class_id>/student/<int:user_id>')
