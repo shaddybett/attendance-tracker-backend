@@ -16,6 +16,7 @@ python-dotenv = "*"
 sqlalchemy-serializer = "*"
 psycopg2-binary = "*"
 flask-jwt-extended = "*"
+pandas = "*"
 
 [dev-packages]
 

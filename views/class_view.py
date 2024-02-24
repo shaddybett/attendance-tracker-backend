@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 
-class_bp = Blueprint('class_bp', __name__)
 bcrypt = Bcrypt()
 
 class ClassView(Resource):
@@ -130,13 +129,42 @@ class ClassStudentResource(Resource):
             return jsonify({'error': 'Student not found in class'})
 
 class AttendanceResource(Resource):
+    @jwt_required()
     def post(self, class_id):
-        data = request.get_json()
-        student_id = data.get('student_id')
-        status = data.get('status')  # 'Present' or 'Absent'
-        date = data.get('date')
+        # data = request.get_json()
+        student_id = get_jwt_identity()
+        # status = data.get('status')  # 'Present', 'Absent' or 'Late'
+        # date = data.get('date')
 
-        attendance = Attendance(class_id=class_id, student_id=student_id, status=status, date=date)
+        # Check if the class exists
+        class_exists = ClassModel.query.filter_by(id=class_id).first()
+        if not class_exists:
+            return jsonify({'error': 'Class does not exist!'})
+        
+        # Check if the student exists in the school
+        student_exists = User.query.filter_by(id=student_id).first()
+        if not student_exists:
+            return jsonify({'error' : 'Student does not exist in the school!'})
+        
+        # Check if student is enrolled in the class
+        student_in_class = ClassStudent.query.filter_by(
+            class_id=class_id,
+            user_id=student_id
+        ).first()
+
+        if not student_in_class:
+            return jsonify({'error': 'Student not enrolled in this class!'})
+
+        # Check for existing attendance recored for the same day
+        existing_attendance = Attendance.query.filter_by(
+            class_id=class_id,
+            student_id=student_id,
+        ).first()
+
+        if existing_attendance:
+            return jsonify({'error': 'Attendance already marked for this student in this class!'})
+
+        attendance = Attendance(class_id=class_id, student_id=student_id, status="present")
         db.session.add(attendance)
         db.session.commit()
         
