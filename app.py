@@ -50,7 +50,7 @@ api.add_resource(AddStudentsFromFile,'/upload_students')
 
 api.add_resource(ClassView, '/class', '/class/<int:class_id>')
 api.add_resource(ClassStudentResource, '/class/<int:class_id>/student/<int:user_id>')
-api.add_resource(Attendance, '/class/<int:class_id>/attendance')
+api.add_resource(AttendanceResource, '/class/<int:class_id>/attendance')
 api.add_resource(ClassDetails, '/class/<int:class_id>/details')
 api.add_resource(AllStudents, '/allstudents')
 api.add_resource(AllTeachers,'/allteachers')
@@ -59,6 +59,8 @@ api.add_resource(DeleteUsers, '/deleteuser/teacher/<int:teacher_id>', '/deleteus
 # api.add_resource(UpdateTeacher, '/updateteacher/<int:user_id>')
 # api.add_resource(UpdateStudent, '/updatestudent')
 api.add_resource(UpdateUser, '/update/<int:user_id>')
+api.add_resource(AttendanceDownloadAPI, '/download-attendance/<int:class_id>')
+
 
 if __name__=='__main__':
     app.run(debug=True,port=5000)
