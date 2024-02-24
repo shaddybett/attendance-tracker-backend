@@ -15,7 +15,9 @@ class User(db.Model,SerializerMixin):
     course = db.Column(db.String,nullable=True)
     avatar_url = db.Column(db.String,nullable=True)
     password = db.Column(db.String,nullable=False)
+
     phone_number = db.Column(db.String,nullable=False)
+
     role_id = db.Column(db.Integer,db.ForeignKey('roles.id'),nullable=False)
 
 
