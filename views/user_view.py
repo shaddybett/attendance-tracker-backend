@@ -38,7 +38,7 @@ class AddTeacher(Resource):
             course=data.course,
             password=bcrypt.generate_password_hash(data['email']).decode('utf-8'),
             phone_number=data.phone_number,
-            role_id=data.role_id,
+            role_id=2,
             # avatar_url=data.avatar_url
         )
         db.session.add(new_teacher)
@@ -73,7 +73,7 @@ class AddStudent(Resource):
             course=data.course,
             password=bcrypt.generate_password_hash(data.email).decode('utf-8'),
             phone_number=data.phone_number,
-            role_id=data.role_id,
+            role_id=3,
             # avatar_url=data.avatar_url
         )
 
