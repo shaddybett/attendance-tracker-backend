@@ -10,7 +10,12 @@ class_bp = Blueprint('class_bp', __name__)
 
 
 class ClassView(Resource):
+    @jwt_required()
     def post(self):
+        user_id = get_jwt_identity()
+        user = User.query.filter_by(id=user_id).first()
+        if user.role_id !=2:
+            return make_response(jsonify({'error': 'Permission denied'}), 403)
         parser = reqparse.RequestParser()
         parser.add_argument('class_name',type=str,required = True)
         parser.add_argument('user_id',type=int,required=True)
@@ -46,8 +51,12 @@ class ClassView(Resource):
         classes = ClassModel.query.filter_by(user_id=user_id).all()
         classes_data = [class_.to_dict() for class_ in classes]
         return jsonify(classes_data)
-
+    @jwt_required()
     def patch(self, class_id):
+        user_id = get_jwt_identity()
+        user = User.query.filter_by(id=user_id).first()
+        if user.role_id !=2 and user.role_id !=1:   
+            return make_response(jsonify({'error': 'Permission denied'}), 403)
         data = request.get_json()
 
         class_ = ClassModel.query.get(int(class_id))
@@ -66,6 +75,10 @@ class ClassView(Resource):
     @jwt_required()
     def delete(self, class_id):
         user_id = get_jwt_identity()
+        user = User.query.filter_by(id=user_id).first()
+        if user.role_id !=2 and user.role_id !=1:   
+            return make_response(jsonify({'error': 'Permission denied'}), 403)
+        user_id = get_jwt_identity()
         class_id = int(class_id)  # Convert class_id to integer
 
         class_ = ClassModel.query.get(class_id)
@@ -77,24 +90,34 @@ class ClassView(Resource):
             return jsonify({'error': 'Class not found'})
 
 class ClassStudentResource(Resource):
-    # @jwt_required()
+    @jwt_required()
     def post(self, class_id,user_id):
-        
-       
+            user_id = get_jwt_identity()
+            user = User.query.filter_by(id=user_id).first()
+            if user.role_id !=2 and user.role_id !=1:   
+                return make_response(jsonify({'error': 'Permission denied'}), 403)
+            
 
-        exists = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
-        if exists:
-            return jsonify({'error': 'Student already exists in class'})
+            # def delete(self, class_id):
 
-        class_student = ClassStudent(class_id=class_id, user_id=user_id)
-        if class_student:
-            db.session.add(class_student)
-            db.session.commit()
-            return jsonify({'message': 'Student added to class successfully'})
-        else:
-            return jsonify({'error': 'Failed to add student to class'})
+            exists = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
+            if exists:
+                return jsonify({'error': 'Student already exists in class'})
 
+            class_student = ClassStudent(class_id=class_id, user_id=user_id)
+            if class_student:
+                db.session.add(class_student)
+                db.session.commit()
+                return jsonify({'message': 'Student added to class successfully'})
+            else:
+                return jsonify({'error': 'Failed to add student to class'})
+    @jwt_required()
     def delete(self, class_id,user_id):
+            
+        user_id = get_jwt_identity()
+        user = User.query.filter_by(id=user_id).first()
+        if user.role_id !=2 and user.role_id !=1:   
+            return make_response(jsonify({'error': 'Permission denied'}), 403)
         
         
         class_student = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
