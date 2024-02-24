@@ -1,13 +1,14 @@
 from flask import Flask, request, jsonify,Blueprint,make_response
 from flask_restful import Api,Resource,reqparse
 from flask_bcrypt import Bcrypt
+from sqlalchemy import func
 from models import db, User, Role, ClassStudent, Class as ClassModel, Attendance
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 
 class_bp = Blueprint('class_bp', __name__)
-
+bcrypt = Bcrypt()
 
 class ClassView(Resource):
     @jwt_required()
@@ -58,8 +59,9 @@ class ClassView(Resource):
         if user.role_id !=2 and user.role_id !=1:   
             return make_response(jsonify({'error': 'Permission denied'}), 403)
         data = request.get_json()
-
-        class_ = ClassModel.query.get(int(class_id))
+        
+        class_ = ClassModel.query.filter_by(id=class_id).first()
+        
         if class_:
             for attr in data:
                 setattr(class_, attr, data[attr])
@@ -70,8 +72,7 @@ class ClassView(Resource):
             return make_response(class_.to_dict(), 200)
         else:
             return jsonify({'error': 'Class not found'})
-    
-    
+
     @jwt_required()
     def delete(self, class_id):
         user_id = get_jwt_identity()
@@ -128,7 +129,7 @@ class ClassStudentResource(Resource):
         else:
             return jsonify({'error': 'Student not found in class'})
 
-class Attendance(Resource):
+class AttendanceResource(Resource):
     def post(self, class_id):
         data = request.get_json()
         student_id = data.get('student_id')
@@ -143,28 +144,65 @@ class Attendance(Resource):
 
 class ClassDetails(Resource):
     def get(self, class_id):
-        class_ = ClassModel.query.get(class_id)
+        class_ = ClassModel.query.filter_by(id=class_id).first()
+        
         if not class_:
             return jsonify({'error': 'Class not found'})
-
-        total_students = len(class_.students)
-
+        
         # Assuming attendance is recorded on the same day as the request
         today = datetime.today().date()
+        
+        class_start_time_str = class_.start_time.strftime("%H:%M:%S")
+        class_start_time = datetime.strptime(class_start_time_str, '%H:%M:%S').time()
 
-        present_students = Attendance.query.filter_by(
-            class_id=class_id, date=today, status='Present'
-        ).count()
+        students = []
+        for student in class_.students:     
+            student_attendance = Attendance.query.filter(
+                Attendance.class_id == class_id,
+                Attendance.student_id == student.id,
+                func.DATE(Attendance.created_at) == today  # Comparing only the dates
+            ).first()
+            if student_attendance:
+                attendance_datetime = student_attendance.created_at
+                # Combine the date part of attendance_datetime with class_start_time
+                attendance_datetime_with_start_time = datetime.combine(attendance_datetime.date(), class_start_time)
+                time_difference = abs(attendance_datetime - attendance_datetime_with_start_time)
+                
+                # Check if the time difference is within 15 minutes
+                if time_difference <= timedelta(minutes=15):
+                    attendance_status = 'Present'
+                    attendance_date = student_attendance.created_at
+                elif attendance_datetime.time() >= class_.end_time:
+                    attendance_status = 'Absent'
+                    attendance_date = student_attendance.created_at
+                else:
+                    attendance_status = 'Late'
+                    attendance_date = student_attendance.created_at
+            else:
+                attendance_status = 'Absent'  
+                attendance_date = None
 
-        absent_students = Attendance.query.filter_by(
-            class_id=class_id, date=today, status='Absent'
-        ).count()
+            student_details = {
+                'id': student.id,
+                'first_name': student.first_name, 
+                'last_name': student.last_name, 
+                'attendance_status': attendance_status,
+                'attendance_date': attendance_date,
+            }
+            students.append(student_details)
+
+        present_students = sum(1 for student in students if student['attendance_status'] == 'Present')
+        absent_students = sum(1 for student in students if student['attendance_status'] == 'Absent')
+        late_students = sum(1 for student in students if student['attendance_status'] == 'Late')
 
         class_details = {
             'class_name': class_.class_name,
-            'total_students': total_students,
+            'students': students,
             'present_students': present_students,
             'absent_students': absent_students,
+            'late_students': late_students,
+            'total_students': len(class_.students)
         }
 
         return jsonify(class_details)
+    
