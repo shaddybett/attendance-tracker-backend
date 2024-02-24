@@ -6,11 +6,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 bcrypt = Bcrypt()
 
-
 class AddTeacher(Resource):
     @jwt_required()
-    
-
     def post(self):
         user_id = get_jwt_identity()
         user = User.query.filter_by(id=user_id).first()
@@ -26,7 +23,7 @@ class AddTeacher(Resource):
         parser.add_argument('phone_number', type=str, required=True)
         parser.add_argument('role_id', type=int, required=True)
         # parser.add_argument('avatar_url',type=str,required=False)
-        data = parser.parse_args(strict=True)  # strict=True will raise an error if a required field is missing
+        data = parser.parse_args(strict=True) 
 
         exists = User.query.filter_by(email=data.email).first()
         if exists:
@@ -47,7 +44,6 @@ class AddTeacher(Resource):
         db.session.add(new_teacher)
         db.session.commit()
         return make_response(jsonify({'message': f'{data.first_name} added successfully  "department":{data.department}  "course":{data.course}'}), 200)
-
 
 class AddStudent(Resource):
     @jwt_required()
@@ -170,40 +166,47 @@ class DeleteUsers(Resource):
         return make_response(jsonify({'error': 'No user ID provided'}), 400)
 
 
+class UpdateUser(Resource):
+    @jwt_required()
+    def patch(self,user_id):
+        id = get_jwt_identity()
+        user_to_update = User.query.filter_by(id=user_id).first()
+        current_user = User.query.filter_by(id=id).first()
 
-
-class UpdateProfile(Resource):
-    # @jwt_required()
-    def patch(self, user_id):
-        user = User.query.filter_by(id=user_id).first()
-        if user is None:
+        if user_to_update is None:
             return make_response(jsonify({'error': 'User not found'}), 404)
         
-        # if user.role_id != 1:
-        #     return make_response(jsonify({'error': 'Permission denied'}), 403)
-        
         data = request.get_json()
-        
-        if user.role_id == 2:  # If the user is a teacher
+        exists = User.query.filter_by(email=data['email']).first()
+        if exists and exists.id != user_to_update.id:
+            return make_response(jsonify({'error': 'Email exists'}), 401)
+        if current_user.role_id == 1 and user_to_update.role_id != 1:
+            
             for attr in data:
-                if attr != 'password':
-                    setattr(user, attr, data[attr])
-
+                setattr(user_to_update,attr,data[attr])
             db.session.commit()
             response_data = {
-                key: value for key, value in user.to_dict().items() if key != 'password'
-            }
-            return make_response(jsonify(response_data), 200)
+                key: value for key, value in user_to_update.to_dict().items() if key != 'password'
+            }    
+            return make_response(jsonify(response_data), 202)
 
-        elif user.role_id == 3:  # If the user is a student
+
+        if (user_to_update.role_id == 2 and current_user.role_id == 2 and current_user.id == user_to_update.id) or (user_to_update.role_id == 3 and current_user.role_id == 2 ): 
             for attr in data:
-                if attr != 'password':
-                    setattr(user, attr, data[attr])
-
+                setattr(user_to_update,attr,data[attr])
             db.session.commit()
             response_data = {
-                key: value for key, value in user.to_dict().items() if key != 'password'
-            }
-            return make_response(jsonify(response_data), 200)
+                key: value for key, value in user_to_update.to_dict().items() if key != 'password'
+            }    
+            return make_response(jsonify(response_data), 202)
+    
+        if(user_to_update.id == current_user.id):
+            for attr in data:
+                setattr(user_to_update,attr,data[attr])
+            db.session.commit()
+            response_data = {
+                key: value for key, value in user_to_update.to_dict().items() if key != 'password'
+            }    
+            return make_response(jsonify(response_data), 202)
 
-        return make_response(jsonify({'error': 'Invalid role'}), 400)
+        return make_response(jsonify({'error': 'Permission denied'}), 403)
