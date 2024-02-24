@@ -1,4 +1,4 @@
-
+from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_serializer import SerializerMixin
 from datetime import datetime
@@ -15,9 +15,7 @@ class User(db.Model,SerializerMixin):
     course = db.Column(db.String,nullable=True)
     avatar_url = db.Column(db.String,nullable=True)
     password = db.Column(db.String,nullable=False)
-
     phone_number = db.Column(db.String,nullable=False)
-
     role_id = db.Column(db.Integer,db.ForeignKey('roles.id'),nullable=False)
 
 
@@ -36,7 +34,7 @@ class TokenBlocklist(db.Model):
 
 class Class(db.Model, SerializerMixin):
     __tablename__ = 'classes'
-    serialize_rules = ('-students',)
+    serialize_rules = ('-students.classes','-students.password')
     id = db.Column(db.Integer, primary_key=True)
     class_name = db.Column(db.String, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id',ondelete='CASCADE'), nullable=False)
