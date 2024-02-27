@@ -55,11 +55,9 @@ api.add_resource(ClassDetails, '/class/<int:class_id>/details')
 api.add_resource(AllStudents, '/allstudents')
 api.add_resource(AllTeachers,'/allteachers')
 api.add_resource(DeleteUsers, '/deleteuser/teacher/<int:teacher_id>', '/deleteuser/student/<int:student_id>')
-# api.add_resource(UpdateAdmin, '/updateadmin/<int:user_id>')
-# api.add_resource(UpdateTeacher, '/updateteacher/<int:user_id>')
-# api.add_resource(UpdateStudent, '/updatestudent')
 api.add_resource(UpdateUser, '/update/<int:user_id>')
 api.add_resource(AttendanceDownloadAPI, '/download-attendance/<int:class_id>')
+api.add_resource(StudentAttendanceReportPDF, '/generate-report')
 
 
 if __name__=='__main__':
