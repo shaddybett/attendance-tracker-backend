@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, send_from_directory
 from flask_restful import Api
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
@@ -40,6 +40,13 @@ def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
     token = db.session.query(TokenBlocklist.id).filter_by(jti=jti).scalar()
 
     return token is not None
+
+class MediaResource(Resource):
+    def get(self, filename):
+        return send_from_directory(os.path.join(app.root_path, 'media'), filename)
+
+api.add_resource(MediaResource, '/media/<path:filename>')
+
 
 api.add_resource(Login,'/login')
 api.add_resource(AuthenticatedUser, '/authenticated_user')
