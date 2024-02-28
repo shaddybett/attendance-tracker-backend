@@ -1,8 +1,19 @@
+import os
 from flask import request, jsonify, make_response
 from flask_restful import Resource, reqparse
 from flask_bcrypt import Bcrypt
 from models import db, User, Role
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from werkzeug.utils import secure_filename
+
+ALLOWED_EXTENSIONS = {'png','jpg','jpeg'}
+UPLOAD_FOLDER  = '/files'
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 bcrypt = Bcrypt()
 
@@ -176,37 +187,44 @@ class UpdateUser(Resource):
         if user_to_update is None:
             return make_response(jsonify({'error': 'User not found'}), 404)
         
-        data = request.get_json()
+        data = request.form
+        file = request.files.get('file-upload')
+        
+        if file:  # If file exists in request
+            filename = secure_filename(file.filename)
+            base_dir = os.path.abspath(os.path.dirname(__file__))
+            upload_folder = 'media'  # Set the upload folder
+            os.makedirs(upload_folder, exist_ok=True) 
+            file.save(os.path.join(upload_folder, filename))  # Save file to file system
+            file_url = os.path.join(upload_folder, filename)  # URL relative to the media folder
+            user_to_update.avatar_url = file_url 
+
         exists = User.query.filter_by(email=data['email']).first()
         if exists and exists.id != user_to_update.id:
-            return make_response(jsonify({'error': 'Email exists'}), 401)
+            return make_response(jsonify({'error': 'Email already exists'}), 401)
+        
         if current_user.role_id == 1 and user_to_update.role_id != 1:
-            
-            for attr in data:
-                setattr(user_to_update,attr,data[attr])
-            db.session.commit()
-            response_data = {
-                key: value for key, value in user_to_update.to_dict().items() if key != 'password'
-            }    
-            return make_response(jsonify(response_data), 202)
-
+            self.update_user_attributes(user_to_update, data)  
+            return make_response(jsonify(self.filter_user_data(user_to_update)), 202)
 
         if (user_to_update.role_id == 2 and current_user.role_id == 2 and current_user.id == user_to_update.id) or (user_to_update.role_id == 3 and current_user.role_id == 2 ): 
-            for attr in data:
-                setattr(user_to_update,attr,data[attr])
-            db.session.commit()
-            response_data = {
-                key: value for key, value in user_to_update.to_dict().items() if key != 'password'
-            }    
-            return make_response(jsonify(response_data), 202)
+            self.update_user_attributes(user_to_update, data)
+            return make_response(jsonify(self.filter_user_data(user_to_update)), 202)
     
         if(user_to_update.id == current_user.id):
-            for attr in data:
-                setattr(user_to_update,attr,data[attr])
-            db.session.commit()
-            response_data = {
-                key: value for key, value in user_to_update.to_dict().items() if key != 'password'
-            }    
-            return make_response(jsonify(response_data), 202)
+            self.update_user_attributes(user_to_update, data)    
+            return make_response(jsonify(self.filter_user_data(user_to_update)), 202)
 
         return make_response(jsonify({'error': 'Permission denied'}), 403)
+    
+    def update_user_attributes(self,user, data):
+        for attr in data:
+            if attr == 'password':
+                setattr(user, attr, bcrypt.generate_password_hash(data[attr]).decode('utf-8'))
+            else:
+                setattr(user,attr,data[attr])
+
+        db.session.commit()
+    
+    def filter_user_data(self,user):
+        return {key: value for key, value in user.to_dict().items() if key != 'password'}
