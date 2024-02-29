@@ -6,7 +6,7 @@ from models import db, User, Role
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 
-ALLOWED_EXTENSIONS = {'png','jpg','jpeg'}
+ALLOWED_EXTENSIONS = {'png','jpg','jpeg','webp'}
 UPLOAD_FOLDER  = '/files'
 
 
