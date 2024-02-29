@@ -65,6 +65,7 @@ api.add_resource(DeleteUsers, '/deleteuser/teacher/<int:teacher_id>', '/deleteus
 api.add_resource(UpdateUser, '/update/<int:user_id>')
 api.add_resource(AttendanceDownloadAPI, '/download-attendance/<int:class_id>')
 api.add_resource(StudentAttendanceReportPDF, '/generate-report')
+api.add_resource(StudentAttendanceReport, '/student')
 
 
 if __name__=='__main__':
