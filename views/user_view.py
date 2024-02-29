@@ -116,6 +116,7 @@ class AllStudents(Resource):
                     "first_name": student.first_name,
                     "last_name": student.last_name,
                     "email": student.email,
+                    "phone_number": student.phone_number,
                     "course": student.course
                 }
                 response.append(student_data)
@@ -150,32 +151,26 @@ class AllTeachers(Resource):
 
 class DeleteUsers(Resource):
     @jwt_required()
-    def delete(self, teacher_id=None, student_id=None):
+    def delete(self, id):
         user_id = get_jwt_identity()
         user = User.query.filter_by(id=user_id).first()
-        if user.role_id != 1:
+        if user.role_id != 1 and user.role_id != 2:
             return make_response(jsonify({'error': 'Permission denied'}), 403)
         
-        if teacher_id:
-            teacher = User.query.filter_by(id=teacher_id, role_id=2).first()
-            if teacher:
-                db.session.delete(teacher)
-                db.session.commit()
-                return make_response(jsonify({'message': f'Teacher {teacher.first_name} successfully deleted'}), 200)
-            else:
-                return make_response(jsonify({'error': 'Teacher not found'}), 404)
+        user_to_delete = User.query.filter_by(id=id).first()
+        
+        if not user_to_delete:
+            return make_response(jsonify({'error': 'User not found'}), 404)
+        
+        if user.role_id == 1 :
+            db.session.delete(user_to_delete)
+            db.session.commit()
+            return make_response(jsonify({'message': f'{user_to_delete.first_name} successfully deleted'}), 200)
 
-        if student_id:
-            student = User.query.filter_by(id=student_id, role_id=3).first()
-            if student:
-                db.session.delete(student)
-                db.session.commit()
-                return make_response(jsonify({'message': f'Student {student.first_name} successfully deleted'}), 200)
-            else:
-                return make_response(jsonify({'error': 'Student not found'}), 404)
-
-        return make_response(jsonify({'error': 'No user ID provided'}), 400)
-
+        if (user.role_id == 2 and user.id == user_to_delete.id) or (user_to_delete.role_id == 3 and user.role_id == 2 ): 
+            db.session.delete(user_to_delete)
+            db.session.commit()
+            return make_response(jsonify({'message': f'{user_to_delete.first_name} successfully deleted'}), 200)
 
 class UpdateUser(Resource):
     @jwt_required()
