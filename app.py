@@ -23,6 +23,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 # app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 jwt = JWTManager()
 jwt.init_app(app)
@@ -51,8 +52,8 @@ api.add_resource(MediaResource, '/media/<path:filename>')
 api.add_resource(Login,'/login')
 api.add_resource(AuthenticatedUser, '/authenticated_user')
 api.add_resource(Logout, '/logout')
-api.add_resource(AddTeacher,'/addteacher')
-api.add_resource(AddStudent,'/addstudent')
+api.add_resource(AddTeacher,'/add-teacher')
+api.add_resource(AddStudent,'/add-student')
 api.add_resource(AddStudentsFromFile,'/upload_students')
 
 api.add_resource(ClassView, '/class', '/class/<int:class_id>')
