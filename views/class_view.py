@@ -160,6 +160,8 @@ class AttendanceResource(Resource):
             class_id=class_id,
             student_id=student_id,
         ).first()
+        
+        print(existing_attendance)
 
         if existing_attendance:
             return jsonify({'error': 'Attendance already marked for this student in this class!'})

@@ -30,7 +30,7 @@ class AddTeacher(Resource):
         parser.add_argument('last_name', type=str, required=True)
         parser.add_argument('email', type=str, required=True)
         parser.add_argument('department', type=str, required=True)
-        parser.add_argument('course', type=str, required=True)
+        # parser.add_argument('course', type=str, required=True)
         parser.add_argument('phone_number', type=str, required=True)
         parser.add_argument('role_id', type=int, required=True)
         # parser.add_argument('avatar_url',type=str,required=False)
@@ -46,7 +46,6 @@ class AddTeacher(Resource):
             last_name=data.last_name,
             email=data.email,
             department=data.department,
-            course=data.course,
             password=bcrypt.generate_password_hash(data['email']).decode('utf-8'),
             phone_number=data.phone_number,
             role_id=2,
@@ -54,7 +53,7 @@ class AddTeacher(Resource):
         )
         db.session.add(new_teacher)
         db.session.commit()
-        return make_response(jsonify({'message': f'{data.first_name} added successfully  "department":{data.department}  "course":{data.course}'}), 200)
+        return make_response(jsonify({'message': f'{data.first_name} added successfully'}), 200)
 
 class AddStudent(Resource):
     @jwt_required()
@@ -63,6 +62,7 @@ class AddStudent(Resource):
         user = User.query.filter_by(id=user_id).first()
         if user.role_id !=1 and user.role_id !=2:
             return make_response(jsonify({'error': 'Permission denied'}), 403)
+        
         parser = reqparse.RequestParser()
         parser.add_argument('first_name', type=str, required=True)
         parser.add_argument('last_name', type=str, required=True)

@@ -3,9 +3,10 @@ import csv
 import json
 from io import StringIO, BytesIO
 import csv
-from flask import jsonify, Response, request
+from flask import jsonify, Response, request, make_response
 from flask_restful import Resource
 from flask_bcrypt import Bcrypt
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 
 from models import db, User
@@ -21,14 +22,22 @@ bcrypt = Bcrypt()
 
 
 class AddStudentsFromFile(Resource):
+    @jwt_required()
     def post(self):
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file part'}), 404
+        user_id = get_jwt_identity()
+        user = User.query.filter_by(id=user_id).first()
         
-        file = request.files['file']
+        if user.role_id !=1 and user.role_id !=2:
+            return make_response(json.dumps({'error': 'Permission denied'}), 403)
         
+        if 'file-upload' not in request.files:
+            print(request.files)
+            return make_response(json.dumps({'error': 'No file part'}), 404)
+        
+        file = request.files['file-upload']
+     
         if file.filename == '':
-            return jsonify({'error': 'No selected file'}), 404
+             return make_response(json.dumps({'error': 'No selected file'}), 404)
 
         if file:
             filename = secure_filename(file.filename)
@@ -40,9 +49,8 @@ class AddStudentsFromFile(Resource):
                 # Read Excel data
                 students, existing = self.parse_excel(file)
             else:
-                return jsonify({'error': 'Unsupported file type'}), 400
-            
-            
+                return make_response(json.dumps({'error': 'Unsupported file type'}), 400)
+             
             db.session.add_all(students)
             db.session.commit()
             
@@ -50,7 +58,7 @@ class AddStudentsFromFile(Resource):
             response_data = json.dumps(error_data)
             return Response(response_data, status=200, mimetype='application/json')
         else:
-            return jsonify({'error': 'Invalid file type'}), 400
+            return make_response(json.dumps({'error': 'Invalid file type'}), 400)
     
     def parse_csv(self, file):
         # Read the CSV data from the file-like object           
