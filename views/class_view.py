@@ -1,7 +1,8 @@
-from flask import Flask, request, jsonify,Blueprint,make_response
+import json
+from flask import Flask, request, jsonify,Blueprint,make_response, Response
 from flask_restful import Api,Resource,reqparse
 from flask_bcrypt import Bcrypt
-from sqlalchemy import func
+from sqlalchemy import func, cast, DATE
 from models import db, User, Role, ClassStudent, Class as ClassModel, Attendance
 from datetime import datetime, timedelta
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -155,16 +156,19 @@ class AttendanceResource(Resource):
         if not student_in_class:
             return jsonify({'error': 'Student not enrolled in this class!'})
 
+        today = datetime.today().date()
         # Check for existing attendance recored for the same day
-        existing_attendance = Attendance.query.filter_by(
-            class_id=class_id,
-            student_id=student_id,
+        existing_attendance = Attendance.query.filter(
+            Attendance.class_id==class_id,
+            Attendance.student_id==student_id,
+            cast(Attendance.created_at, DATE) == today
         ).first()
         
         print(existing_attendance)
 
         if existing_attendance:
-            return jsonify({'error': 'Attendance already marked for this student in this class!'})
+            response_data = {'error': 'Attendance already marked for this student in this class!'}
+            return json.dumps(response_data), 409
 
         attendance = Attendance(class_id=class_id, student_id=student_id, status="present")
         db.session.add(attendance)
@@ -173,14 +177,11 @@ class AttendanceResource(Resource):
         return jsonify({'message': 'Attendance marked successfully'})
 
 class ClassDetails(Resource):
-    def get(self, class_id):
+    def get(self, class_id, details_date):
         class_ = ClassModel.query.filter_by(id=class_id).first()
         
         if not class_:
             return jsonify({'error': 'Class not found'})
-        
-        # Assuming attendance is recorded on the same day as the request
-        today = datetime.today().date()
         
         class_start_time_str = class_.start_time.strftime("%H:%M:%S")
         class_start_time = datetime.strptime(class_start_time_str, '%H:%M:%S').time()
@@ -190,7 +191,7 @@ class ClassDetails(Resource):
             student_attendance = Attendance.query.filter(
                 Attendance.class_id == class_id,
                 Attendance.student_id == student.id,
-                func.DATE(Attendance.created_at) == today  # Comparing only the dates
+                func.DATE(Attendance.created_at) == details_date  # Comparing only the dates
             ).first()
             if student_attendance:
                 attendance_datetime = student_attendance.created_at
@@ -200,27 +201,33 @@ class ClassDetails(Resource):
                 
                 # Check if the time difference is within 15 minutes
                 if time_difference <= timedelta(minutes=15):
-                    attendance_status = 'Present'
-                    attendance_date = student_attendance.created_at
+                    attendance_status = 'Present' if attendance_datetime.weekday() <= 5 else 'Weekend'
+                    time_in = student_attendance.created_at.strftime("%H:%M:%S")
                 elif attendance_datetime.time() >= class_.end_time:
-                    attendance_status = 'Absent'
-                    attendance_date = student_attendance.created_at
+                    attendance_status = 'Absent' if attendance_datetime.weekday() <= 5 else 'Weekend'
+                    time_in = student_attendance.created_at.strftime("%H:%M:%S")
                 else:
-                    attendance_status = 'Late'
-                    attendance_date = student_attendance.created_at
+                    attendance_status = 'Late' if attendance_datetime.weekday() <= 5 else 'Weekend'
+                    time_in = student_attendance.created_at.strftime("%H:%M:%S")
             else:
-                attendance_status = 'Absent'  
-                attendance_date = None
+                # Check if it's a weekend
+                if datetime.strptime(details_date, '%Y-%m-%d').weekday() >= 5:
+                    attendance_status = 'Weekend'
+                else:
+                    attendance_status = 'Absent'
+                time_in = '00:00'  
 
             student_details = {
                 'id': student.id,
                 'first_name': student.first_name, 
                 'last_name': student.last_name, 
                 'attendance_status': attendance_status,
-                'attendance_date': attendance_date,
+                'time_in': time_in,
+                'phone_number': student.phone_number,
+                'email':student.email
             }
             students.append(student_details)
-
+            
         present_students = sum(1 for student in students if student['attendance_status'] == 'Present')
         absent_students = sum(1 for student in students if student['attendance_status'] == 'Absent')
         late_students = sum(1 for student in students if student['attendance_status'] == 'Late')
@@ -234,5 +241,6 @@ class ClassDetails(Resource):
             'total_students': len(class_.students)
         }
 
-        return jsonify(class_details)
+        return Response(json.dumps(class_details), status=200, mimetype='application/json')
+
     
