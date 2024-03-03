@@ -92,42 +92,45 @@ class ClassView(Resource):
 
 class ClassStudentResource(Resource):
     @jwt_required()
-    def post(self, class_id,user_id):
-            user_id = get_jwt_identity()
-            user = User.query.filter_by(id=user_id).first()
+    def post(self, class_id):
+            id = get_jwt_identity()
+            user = User.query.filter_by(id=id).first()
+            
             if user.role_id !=2 and user.role_id !=1:   
                 return make_response(jsonify({'error': 'Permission denied'}), 403)
             
-
-            # def delete(self, class_id):
-
-            exists = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
-            if exists:
-                return jsonify({'error': 'Student already exists in class'})
-
-            class_student = ClassStudent(class_id=class_id, user_id=user_id)
-            if class_student:
-                db.session.add(class_student)
-                db.session.commit()
-                return jsonify({'message': 'Student added to class successfully'})
-            else:
-                return jsonify({'error': 'Failed to add student to class'})
-    @jwt_required()
-    def delete(self, class_id,user_id):
+            data = request.get_json()
+            student = User.query.filter_by(email=data['email']).first()
             
-        user_id = get_jwt_identity()
-        user = User.query.filter_by(id=user_id).first()
+            if not student:
+                return make_response(jsonify({'error': 'Student not found'}), 404)
+
+            exists = ClassStudent.query.filter_by(class_id=class_id, user_id=student.id).first()
+            if exists:
+                return make_response(jsonify({'error': 'Student already exists in class'}), 401)
+
+            class_student = ClassStudent(class_id=class_id, user_id=student.id)
+            db.session.add(class_student)
+            db.session.commit()
+            return make_response(jsonify({'message': f'{student.first_name} added successfully'}), 201)
+
+    @jwt_required()
+    def delete(self, class_id):    
+        id = get_jwt_identity()
+        user = User.query.filter_by(id=id).first()
         if user.role_id !=2 and user.role_id !=1:   
             return make_response(jsonify({'error': 'Permission denied'}), 403)
         
-        
-        class_student = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
+        data = request.get_json()
+        student_id = data['student_id']
+        class_student = ClassStudent.query.filter_by(class_id=class_id, user_id=student_id).first()
+
         if class_student:
             db.session.delete(class_student)
             db.session.commit()
             return jsonify({'message': 'Student removed from class successfully'})
         else:
-            return jsonify({'error': 'Student not found in class'})
+            return make_response(jsonify({'error': 'Student not found in class'}), 404)
 
 class AttendanceResource(Resource):
     @jwt_required()
