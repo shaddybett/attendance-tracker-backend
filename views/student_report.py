@@ -10,21 +10,15 @@ import plotly.graph_objs as go
 
 
 class StudentAttendanceReportPDF(Resource):
-    @jwt_required()
-    def post(self):
-        student_id = get_jwt_identity()
+    def get(self,student_id, start_date, end_date):
         student = User.query.filter_by(id=student_id).first()
-        
-        # Get the start and end dates from the request
-        start_date_str = request.json.get('start_date')
-        end_date_str = request.json.get('end_date')
 
         # Convert the date strings to datetime objects
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        start_date_time = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date_time = datetime.strptime(end_date, '%Y-%m-%d').date()
 
         # Validate the date range
-        if end_date < start_date:
+        if end_date_time < start_date_time:
             return jsonify({'error': 'End date must be after start date'}), 400
 
         # Initialize counters for present, absent, and late days
@@ -33,9 +27,9 @@ class StudentAttendanceReportPDF(Resource):
         late_days = 0
 
         # Calculate the number of days in the date range excluding weekends
-        total_days = (end_date - start_date).days + 1
+        total_days = (end_date_time - start_date_time).days + 1
         weekends = set([5, 6])  # Saturday (5) and Sunday (6)
-        weekdays = [start_date + timedelta(days=i) for i in range(total_days) if (start_date + timedelta(days=i)).weekday() not in weekends]
+        weekdays = [start_date_time + timedelta(days=i) for i in range(total_days) if (start_date_time + timedelta(days=i)).weekday() not in weekends]
 
         # Iterate through each day in the date range
         for day in weekdays:
@@ -53,7 +47,7 @@ class StudentAttendanceReportPDF(Resource):
                 absent_days += 1
 
         # Generate the PDF report
-        pdf_buffer = self.generate_pdf_report(start_date_str, end_date_str, present_days, absent_days, late_days)
+        pdf_buffer = self.generate_pdf_report(start_date_time, end_date_time, present_days, absent_days, late_days)
 
         # Return the PDF as a response
         return Response(pdf_buffer, mimetype='application/pdf', headers={'Content-Disposition': f'attachment; filename=attendance_report.pdf'})
@@ -74,13 +68,13 @@ class StudentAttendanceReportPDF(Resource):
 
         return attendance_status
 
-    def generate_pdf_report(self, start_date, end_date, present_days, absent_days, late_days):
+    def generate_pdf_report(self, start_date_time, end_date_time, present_days, absent_days, late_days):
         buffer = BytesIO()
         p = canvas.Canvas(buffer, pagesize=letter)
 
         # Add content to the PDF
         p.drawString(100, 750, "Attendance Report")
-        p.drawString(100, 730, f"Date Range: {start_date} to {end_date}")
+        p.drawString(100, 730, f"Date Range: {start_date_time} to {end_date_time}")
         p.drawString(100, 710, f"Present Days: {present_days}")
         p.drawString(100, 690, f"Absent Days: {absent_days}")
         p.drawString(100, 670, f"Late Days: {late_days}")
