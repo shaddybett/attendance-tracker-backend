@@ -54,8 +54,8 @@ class AddStudentsFromFile(Resource):
             db.session.add_all(students)
             db.session.commit()
             
-            error_data = {'msg': f'{len(students)} out of {len(students) + len(existing)} students created successfully', 'emails_in_use':existing}
-            response_data = json.dumps(error_data)
+            data = {'msg': f'{len(students)} out of {len(students) + len(existing)} students created successfully', 'emails_in_use':existing}
+            response_data = json.dumps(data)
             return Response(response_data, status=200, mimetype='application/json')
         else:
             return make_response(json.dumps({'error': 'Invalid file type'}), 400)
