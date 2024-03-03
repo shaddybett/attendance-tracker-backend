@@ -60,6 +60,7 @@ class AuthenticatedUser(Resource):
                 'department': user.department,
                 'course': user.course,
                 'phone_number': user.phone_number,
+                'role_id':user.role_id,
                 'avatar_url':user.avatar_url
             }
             response_data = json.dumps(user_data)
