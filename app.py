@@ -65,7 +65,7 @@ api.add_resource(AllTeachers,'/teachers')
 api.add_resource(DeleteUsers, '/delete-user/<int:id>')
 api.add_resource(UpdateUser, '/update/<int:user_id>')
 api.add_resource(AttendanceDownloadAPI, '/download-attendance/<int:class_id>/<path:report_date>')
-api.add_resource(StudentAttendanceReportPDF, '/generate-report')
+api.add_resource(StudentAttendanceReportPDF, '/generate-report/<int:student_id>/<path:start_date>/<path:end_date>')
 api.add_resource(StudentAttendanceReport, '/student')
 
 
