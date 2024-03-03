@@ -205,13 +205,13 @@ class ClassDetails(Resource):
                 # Check if the time difference is within 15 minutes
                 if time_difference <= timedelta(minutes=15):
                     attendance_status = 'Present' if attendance_datetime.weekday() <= 5 else 'Weekend'
-                    time_in = student_attendance.created_at.strftime("%H:%M:%S")
+                    time_in = student_attendance.created_at.strftime("%H:%M")
                 elif attendance_datetime.time() >= class_.end_time:
                     attendance_status = 'Absent' if attendance_datetime.weekday() <= 5 else 'Weekend'
-                    time_in = student_attendance.created_at.strftime("%H:%M:%S")
+                    time_in = student_attendance.created_at.strftime("%H:%M")
                 else:
                     attendance_status = 'Late' if attendance_datetime.weekday() <= 5 else 'Weekend'
-                    time_in = student_attendance.created_at.strftime("%H:%M:%S")
+                    time_in = student_attendance.created_at.strftime("%H:%M")
             else:
                 # Check if it's a weekend
                 if datetime.strptime(details_date, '%Y-%m-%d').weekday() >= 5:
