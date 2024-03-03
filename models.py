@@ -18,14 +18,10 @@ class User(db.Model,SerializerMixin):
     phone_number = db.Column(db.String,nullable=False)
     role_id = db.Column(db.Integer,db.ForeignKey('roles.id'),nullable=False)
 
-
-
-
 class Role(db.Model,SerializerMixin):
     __tablename__='roles'
     id = db.Column(db.Integer,primary_key=True)
     role_name=db.Column(db.String,nullable=False)
-
 
 class TokenBlocklist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
