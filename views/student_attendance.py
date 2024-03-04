@@ -28,7 +28,7 @@ class StudentAttendanceReport(Resource):
             absent_days = 0
             
             # Calculate the total number of days from class start date to today excluding weekends
-            total_days = self.get_total_weekdays(class_.start_date.date(), today)
+            total_days = self.get_total_weekdays(class_.start_date.date(), class_.end_date.date() if class_.end_date.date() <= today else today)
             # Iterate through attendance records to calculate attendance stats
             for record in attendance_records:
                 status = self.determine_attendance_status(record.created_at, class_.start_time, class_.end_time)
@@ -42,9 +42,9 @@ class StudentAttendanceReport(Resource):
                     
             # Prepare the attendance report
             start_date = class_.start_date
-            end_date = today
-            start_time = class_.start_time.strftime('%H:%M:%S')  # Convert to string
-            end_time = class_.end_time.strftime('%H:%M:%S') 
+            end_date = class_.end_date if class_.end_date.date() <= today else today
+            start_time = class_.start_time.strftime('%H:%M')  # Convert to string
+            end_time = class_.end_time.strftime('%H:%M') 
             
             attendance_report = {
                 'class_id': class_.id,
