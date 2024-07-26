@@ -59,7 +59,9 @@ class AuthenticatedUser(Resource):
                 'email': user.email,
                 'department': user.department,
                 'course': user.course,
-                'phone_number': user.phone_number
+                'phone_number': user.phone_number,
+                'role_id':user.role_id,
+                'avatar_url':user.avatar_url
             }
             response_data = json.dumps(user_data)
             return Response(response_data, status=200, mimetype='application/json')

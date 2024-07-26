@@ -1,8 +1,19 @@
+import os
 from flask import request, jsonify, make_response
 from flask_restful import Resource, reqparse
 from flask_bcrypt import Bcrypt
 from models import db, User, Role
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from werkzeug.utils import secure_filename
+
+ALLOWED_EXTENSIONS = {'png','jpg','jpeg','webp'}
+UPLOAD_FOLDER  = '/files'
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 bcrypt = Bcrypt()
 
@@ -19,7 +30,7 @@ class AddTeacher(Resource):
         parser.add_argument('last_name', type=str, required=True)
         parser.add_argument('email', type=str, required=True)
         parser.add_argument('department', type=str, required=True)
-        parser.add_argument('course', type=str, required=True)
+        # parser.add_argument('course', type=str, required=True)
         parser.add_argument('phone_number', type=str, required=True)
         parser.add_argument('role_id', type=int, required=True)
         # parser.add_argument('avatar_url',type=str,required=False)
@@ -35,15 +46,14 @@ class AddTeacher(Resource):
             last_name=data.last_name,
             email=data.email,
             department=data.department,
-            course=data.course,
             password=bcrypt.generate_password_hash(data['email']).decode('utf-8'),
             phone_number=data.phone_number,
-            role_id=data.role_id,
+            role_id=2,
             # avatar_url=data.avatar_url
         )
         db.session.add(new_teacher)
         db.session.commit()
-        return make_response(jsonify({'message': f'{data.first_name} added successfully  "department":{data.department}  "course":{data.course}'}), 200)
+        return make_response(jsonify({'message': f'{data.first_name} added successfully'}), 200)
 
 class AddStudent(Resource):
     @jwt_required()
@@ -52,6 +62,7 @@ class AddStudent(Resource):
         user = User.query.filter_by(id=user_id).first()
         if user.role_id !=1 and user.role_id !=2:
             return make_response(jsonify({'error': 'Permission denied'}), 403)
+        
         parser = reqparse.RequestParser()
         parser.add_argument('first_name', type=str, required=True)
         parser.add_argument('last_name', type=str, required=True)
@@ -73,7 +84,7 @@ class AddStudent(Resource):
             course=data.course,
             password=bcrypt.generate_password_hash(data.email).decode('utf-8'),
             phone_number=data.phone_number,
-            role_id=data.role_id,
+            role_id=3,
             # avatar_url=data.avatar_url
         )
 
@@ -105,6 +116,7 @@ class AllStudents(Resource):
                     "first_name": student.first_name,
                     "last_name": student.last_name,
                     "email": student.email,
+                    "phone_number": student.phone_number,
                     "course": student.course
                 }
                 response.append(student_data)
@@ -139,32 +151,26 @@ class AllTeachers(Resource):
 
 class DeleteUsers(Resource):
     @jwt_required()
-    def delete(self, teacher_id=None, student_id=None):
+    def delete(self, id):
         user_id = get_jwt_identity()
         user = User.query.filter_by(id=user_id).first()
-        if user.role_id != 1:
+        if user.role_id != 1 and user.role_id != 2:
             return make_response(jsonify({'error': 'Permission denied'}), 403)
         
-        if teacher_id:
-            teacher = User.query.filter_by(id=teacher_id, role_id=2).first()
-            if teacher:
-                db.session.delete(teacher)
-                db.session.commit()
-                return make_response(jsonify({'message': f'Teacher {teacher.first_name} successfully deleted'}), 200)
-            else:
-                return make_response(jsonify({'error': 'Teacher not found'}), 404)
+        user_to_delete = User.query.filter_by(id=id).first()
+        
+        if not user_to_delete:
+            return make_response(jsonify({'error': 'User not found'}), 404)
+        
+        if user.role_id == 1 :
+            db.session.delete(user_to_delete)
+            db.session.commit()
+            return make_response(jsonify({'message': f'{user_to_delete.first_name} successfully deleted'}), 200)
 
-        if student_id:
-            student = User.query.filter_by(id=student_id, role_id=3).first()
-            if student:
-                db.session.delete(student)
-                db.session.commit()
-                return make_response(jsonify({'message': f'Student {student.first_name} successfully deleted'}), 200)
-            else:
-                return make_response(jsonify({'error': 'Student not found'}), 404)
-
-        return make_response(jsonify({'error': 'No user ID provided'}), 400)
-
+        if (user.role_id == 2 and user.id == user_to_delete.id) or (user_to_delete.role_id == 3 and user.role_id == 2 ): 
+            db.session.delete(user_to_delete)
+            db.session.commit()
+            return make_response(jsonify({'message': f'{user_to_delete.first_name} successfully deleted'}), 200)
 
 class UpdateUser(Resource):
     @jwt_required()
@@ -176,37 +182,44 @@ class UpdateUser(Resource):
         if user_to_update is None:
             return make_response(jsonify({'error': 'User not found'}), 404)
         
-        data = request.get_json()
+        data = request.form
+        file = request.files.get('file-upload')
+        
+        if file:  # If file exists in request
+            filename = secure_filename(file.filename)
+            base_dir = os.path.abspath(os.path.dirname(__file__))
+            upload_folder = 'media'  # Set the upload folder
+            os.makedirs(upload_folder, exist_ok=True) 
+            file.save(os.path.join(upload_folder, filename))  # Save file to file system
+            file_url = os.path.join(upload_folder, filename)  # URL relative to the media folder
+            user_to_update.avatar_url = file_url 
+
         exists = User.query.filter_by(email=data['email']).first()
         if exists and exists.id != user_to_update.id:
-            return make_response(jsonify({'error': 'Email exists'}), 401)
+            return make_response(jsonify({'error': 'Email already exists'}), 401)
+        
         if current_user.role_id == 1 and user_to_update.role_id != 1:
-            
-            for attr in data:
-                setattr(user_to_update,attr,data[attr])
-            db.session.commit()
-            response_data = {
-                key: value for key, value in user_to_update.to_dict().items() if key != 'password'
-            }    
-            return make_response(jsonify(response_data), 202)
-
+            self.update_user_attributes(user_to_update, data)  
+            return make_response(jsonify(self.filter_user_data(user_to_update)), 202)
 
         if (user_to_update.role_id == 2 and current_user.role_id == 2 and current_user.id == user_to_update.id) or (user_to_update.role_id == 3 and current_user.role_id == 2 ): 
-            for attr in data:
-                setattr(user_to_update,attr,data[attr])
-            db.session.commit()
-            response_data = {
-                key: value for key, value in user_to_update.to_dict().items() if key != 'password'
-            }    
-            return make_response(jsonify(response_data), 202)
+            self.update_user_attributes(user_to_update, data)
+            return make_response(jsonify(self.filter_user_data(user_to_update)), 202)
     
         if(user_to_update.id == current_user.id):
-            for attr in data:
-                setattr(user_to_update,attr,data[attr])
-            db.session.commit()
-            response_data = {
-                key: value for key, value in user_to_update.to_dict().items() if key != 'password'
-            }    
-            return make_response(jsonify(response_data), 202)
+            self.update_user_attributes(user_to_update, data)    
+            return make_response(jsonify(self.filter_user_data(user_to_update)), 202)
 
         return make_response(jsonify({'error': 'Permission denied'}), 403)
+    
+    def update_user_attributes(self,user, data):
+        for attr in data:
+            if attr == 'password':
+                setattr(user, attr, bcrypt.generate_password_hash(data[attr]).decode('utf-8'))
+            else:
+                setattr(user,attr,data[attr])
+
+        db.session.commit()
+    
+    def filter_user_data(self,user):
+        return {key: value for key, value in user.to_dict().items() if key != 'password'}

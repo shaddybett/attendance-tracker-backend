@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, send_from_directory
 from flask_restful import Api
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
@@ -41,24 +41,32 @@ def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
 
     return token is not None
 
+class MediaResource(Resource):
+    def get(self, filename):
+        return send_from_directory(os.path.join(app.root_path, 'media'), filename)
+
+api.add_resource(MediaResource, '/media/<path:filename>')
+
+
 api.add_resource(Login,'/login')
 api.add_resource(AuthenticatedUser, '/authenticated_user')
 api.add_resource(Logout, '/logout')
-api.add_resource(AddTeacher,'/addteacher')
-api.add_resource(AddStudent,'/addstudent')
+api.add_resource(AddTeacher,'/add-teacher')
+api.add_resource(AddStudent,'/add-student')
 api.add_resource(AddStudentsFromFile,'/upload_students')
-
+api.add_resource(AddToClassFromFile, '/upload_students/<int:class_id>')
 api.add_resource(ClassView, '/class', '/class/<int:class_id>')
-api.add_resource(ClassStudentResource, '/class/<int:class_id>/student/<int:user_id>')
-api.add_resource(Attendance, '/class/<int:class_id>/attendance')
-api.add_resource(ClassDetails, '/class/<int:class_id>/details')
-api.add_resource(AllStudents, '/allstudents')
-api.add_resource(AllTeachers,'/allteachers')
-api.add_resource(DeleteUsers, '/deleteuser/teacher/<int:teacher_id>', '/deleteuser/student/<int:student_id>')
-# api.add_resource(UpdateAdmin, '/updateadmin/<int:user_id>')
-# api.add_resource(UpdateTeacher, '/updateteacher/<int:user_id>')
-# api.add_resource(UpdateStudent, '/updatestudent')
+api.add_resource(ClassStudentResource, '/class/<int:class_id>/student')
+api.add_resource(AttendanceResource, '/class/<int:class_id>/attendance')
+api.add_resource(ClassDetails, '/class/<int:class_id>/details/<path:details_date>')
+api.add_resource(AllStudents, '/students')
+api.add_resource(AllTeachers,'/teachers')
+api.add_resource(DeleteUsers, '/delete-user/<int:id>')
 api.add_resource(UpdateUser, '/update/<int:user_id>')
+api.add_resource(AttendanceDownloadAPI, '/download-attendance/<int:class_id>/<path:report_date>')
+api.add_resource(StudentAttendanceReportPDF, '/generate-report/<int:student_id>/<path:start_date>/<path:end_date>')
+api.add_resource(StudentAttendanceReport, '/student')
+
 
 if __name__=='__main__':
     app.run(debug=True,port=5000)

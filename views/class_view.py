@@ -1,13 +1,14 @@
-from flask import Flask, request, jsonify,Blueprint,make_response
+import json
+from flask import Flask, request, jsonify,Blueprint,make_response, Response
 from flask_restful import Api,Resource,reqparse
 from flask_bcrypt import Bcrypt
+from sqlalchemy import func, cast, DATE
 from models import db, User, Role, ClassStudent, Class as ClassModel, Attendance
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 
-class_bp = Blueprint('class_bp', __name__)
-
+bcrypt = Bcrypt()
 
 class ClassView(Resource):
     @jwt_required()
@@ -58,8 +59,9 @@ class ClassView(Resource):
         if user.role_id !=2 and user.role_id !=1:   
             return make_response(jsonify({'error': 'Permission denied'}), 403)
         data = request.get_json()
-
-        class_ = ClassModel.query.get(int(class_id))
+        
+        class_ = ClassModel.query.filter_by(id=class_id).first()
+        
         if class_:
             for attr in data:
                 setattr(class_, attr, data[attr])
@@ -70,8 +72,7 @@ class ClassView(Resource):
             return make_response(class_.to_dict(), 200)
         else:
             return jsonify({'error': 'Class not found'})
-    
-    
+
     @jwt_required()
     def delete(self, class_id):
         user_id = get_jwt_identity()
@@ -91,80 +92,158 @@ class ClassView(Resource):
 
 class ClassStudentResource(Resource):
     @jwt_required()
-    def post(self, class_id,user_id):
-            user_id = get_jwt_identity()
-            user = User.query.filter_by(id=user_id).first()
+    def post(self, class_id):
+            id = get_jwt_identity()
+            user = User.query.filter_by(id=id).first()
+            
             if user.role_id !=2 and user.role_id !=1:   
                 return make_response(jsonify({'error': 'Permission denied'}), 403)
             
-
-            # def delete(self, class_id):
-
-            exists = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
-            if exists:
-                return jsonify({'error': 'Student already exists in class'})
-
-            class_student = ClassStudent(class_id=class_id, user_id=user_id)
-            if class_student:
-                db.session.add(class_student)
-                db.session.commit()
-                return jsonify({'message': 'Student added to class successfully'})
-            else:
-                return jsonify({'error': 'Failed to add student to class'})
-    @jwt_required()
-    def delete(self, class_id,user_id):
+            data = request.get_json()
+            student = User.query.filter_by(email=data['email']).first()
             
-        user_id = get_jwt_identity()
-        user = User.query.filter_by(id=user_id).first()
+            if not student:
+                return make_response(jsonify({'error': 'Student not found'}), 404)
+
+            exists = ClassStudent.query.filter_by(class_id=class_id, user_id=student.id).first()
+            if exists:
+                return make_response(jsonify({'error': 'Student already exists in class'}), 401)
+
+            class_student = ClassStudent(class_id=class_id, user_id=student.id)
+            db.session.add(class_student)
+            db.session.commit()
+            return make_response(jsonify({'message': f'{student.first_name} added successfully'}), 201)
+
+    @jwt_required()
+    def delete(self, class_id):    
+        id = get_jwt_identity()
+        user = User.query.filter_by(id=id).first()
         if user.role_id !=2 and user.role_id !=1:   
             return make_response(jsonify({'error': 'Permission denied'}), 403)
         
-        
-        class_student = ClassStudent.query.filter_by(class_id=class_id, user_id=user_id).first()
+        data = request.get_json()
+        student_id = data['student_id']
+        class_student = ClassStudent.query.filter_by(class_id=class_id, user_id=student_id).first()
+
         if class_student:
             db.session.delete(class_student)
             db.session.commit()
             return jsonify({'message': 'Student removed from class successfully'})
         else:
-            return jsonify({'error': 'Student not found in class'})
+            return make_response(jsonify({'error': 'Student not found in class'}), 404)
 
-class Attendance(Resource):
+class AttendanceResource(Resource):
+    @jwt_required()
     def post(self, class_id):
-        data = request.get_json()
-        student_id = data.get('student_id')
-        status = data.get('status')  # 'Present' or 'Absent'
-        date = data.get('date')
+        # data = request.get_json()
+        student_id = get_jwt_identity()
+        # status = data.get('status')  # 'Present', 'Absent' or 'Late'
+        # date = data.get('date')
 
-        attendance = Attendance(class_id=class_id, student_id=student_id, status=status, date=date)
+        # Check if the class exists
+        class_exists = ClassModel.query.filter_by(id=class_id).first()
+        if not class_exists:
+            return jsonify({'error': 'Class does not exist!'})
+        
+        # Check if the student exists in the school
+        student_exists = User.query.filter_by(id=student_id).first()
+        if not student_exists:
+            return jsonify({'error' : 'Student does not exist in the school!'})
+        
+        # Check if student is enrolled in the class
+        student_in_class = ClassStudent.query.filter_by(
+            class_id=class_id,
+            user_id=student_id
+        ).first()
+
+        if not student_in_class:
+            return jsonify({'error': 'Student not enrolled in this class!'})
+
+        today = datetime.today().date()
+        # Check for existing attendance recored for the same day
+        existing_attendance = Attendance.query.filter(
+            Attendance.class_id==class_id,
+            Attendance.student_id==student_id,
+            cast(Attendance.created_at, DATE) == today
+        ).first()
+        
+        print(existing_attendance)
+
+        if existing_attendance:
+            response_data = {'error': 'Attendance already marked for this student in this class!'}
+            return json.dumps(response_data), 409
+
+        attendance = Attendance(class_id=class_id, student_id=student_id, status="present")
         db.session.add(attendance)
         db.session.commit()
         
         return jsonify({'message': 'Attendance marked successfully'})
 
 class ClassDetails(Resource):
-    def get(self, class_id):
-        class_ = ClassModel.query.get(class_id)
+    def get(self, class_id, details_date):
+        class_ = ClassModel.query.filter_by(id=class_id).first()
+        
         if not class_:
             return jsonify({'error': 'Class not found'})
+        
+        class_start_time_str = class_.start_time.strftime("%H:%M:%S")
+        class_start_time = datetime.strptime(class_start_time_str, '%H:%M:%S').time()
 
-        total_students = len(class_.students)
+        students = []
+        for student in class_.students:     
+            student_attendance = Attendance.query.filter(
+                Attendance.class_id == class_id,
+                Attendance.student_id == student.id,
+                func.DATE(Attendance.created_at) == details_date  # Comparing only the dates
+            ).first()
+            if student_attendance:
+                attendance_datetime = student_attendance.created_at
+                # Combine the date part of attendance_datetime with class_start_time
+                attendance_datetime_with_start_time = datetime.combine(attendance_datetime.date(), class_start_time)
+                time_difference = abs(attendance_datetime - attendance_datetime_with_start_time)
+                
+                # Check if the time difference is within 15 minutes
+                if time_difference <= timedelta(minutes=15):
+                    attendance_status = 'Present' if attendance_datetime.weekday() <= 5 else 'Weekend'
+                    time_in = student_attendance.created_at.strftime("%H:%M")
+                elif attendance_datetime.time() >= class_.end_time:
+                    attendance_status = 'Absent' if attendance_datetime.weekday() <= 5 else 'Weekend'
+                    time_in = student_attendance.created_at.strftime("%H:%M")
+                else:
+                    attendance_status = 'Late' if attendance_datetime.weekday() <= 5 else 'Weekend'
+                    time_in = student_attendance.created_at.strftime("%H:%M")
+            else:
+                # Check if it's a weekend
+                if datetime.strptime(details_date, '%Y-%m-%d').weekday() >= 5:
+                    attendance_status = 'Weekend'
+                else:
+                    attendance_status = 'Absent'
+                time_in = '00:00'  
 
-        # Assuming attendance is recorded on the same day as the request
-        today = datetime.today().date()
-
-        present_students = Attendance.query.filter_by(
-            class_id=class_id, date=today, status='Present'
-        ).count()
-
-        absent_students = Attendance.query.filter_by(
-            class_id=class_id, date=today, status='Absent'
-        ).count()
+            student_details = {
+                'id': student.id,
+                'first_name': student.first_name, 
+                'last_name': student.last_name, 
+                'attendance_status': attendance_status,
+                'time_in': time_in,
+                'phone_number': student.phone_number,
+                'email':student.email
+            }
+            students.append(student_details)
+            
+        present_students = sum(1 for student in students if student['attendance_status'] == 'Present')
+        absent_students = sum(1 for student in students if student['attendance_status'] == 'Absent')
+        late_students = sum(1 for student in students if student['attendance_status'] == 'Late')
 
         class_details = {
             'class_name': class_.class_name,
-            'total_students': total_students,
+            'students': students,
             'present_students': present_students,
             'absent_students': absent_students,
+            'late_students': late_students,
+            'total_students': len(class_.students)
         }
 
-        return jsonify(class_details)
+        return Response(json.dumps(class_details), status=200, mimetype='application/json')
+
+    
