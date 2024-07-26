@@ -66,6 +66,6 @@ with app.app_context():
         phone_number=125378293,
         role_id=admin_role_id
     )
-    # db.session.add(admin)
-    # db.session.commit()
+    db.session.add(admin)
+    db.session.commit()
 
