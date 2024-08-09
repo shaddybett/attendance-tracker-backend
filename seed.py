@@ -48,8 +48,8 @@ with app.app_context():
     for role_name in ['admin', 'teacher', 'student']:
         role = Role(role_name=role_name)
         roles.append(role)
-    # db.session.add_all(roles)
-    # db.session.commit()
+    db.session.add_all(roles)
+    db.session.commit()
 
     # Retrieve role IDs
     admin_role_id = Role.query.filter_by(role_name='admin').first().id
